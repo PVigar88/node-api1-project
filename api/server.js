@@ -35,28 +35,29 @@ app.get("/api/users/:id", async (req, res) => {
   res.json(user);
 });
 // PUT	/api/users/:id	Updates the user with the specified id using data from the request body. Returns the modified user
-app.put("/api/users:id", async (req, res) => {
+app.put("/api/users/:id", async (req, res) => {
   const { id } = req.params;
-  const user = await User.findById(id);
-  if (!user) {
-    return res.status(404).json({
-      message: "The user with the specified ID does not exist",
-    });
-  }
   const userData = req.body;
-  if (!req.body.name || !req.body.bio) {
+  if (!userData.name || !userData.bio) {
     return res.status(400).json({
       message: "Please provide name and bio for the user",
     });
   }
-  const revisedUser = User.update(id, userData);
-
-  if (!revisedUser) {
-    return res.status(500).json({
-      message: "The user information could not be modified",
+  await User.update(id, userData)
+    .then((revisedUser) => {
+      if (revisedUser) {
+        res.status(200).json(revisedUser);
+      } else {
+        res.status(404).json({
+          message: "The user with the specified ID does not exist",
+        });
+      }
+    })
+    .catch(() => {
+      res.status(500).json({
+        message: "The user information could not be modified",
+      });
     });
-  }
-  res.status(200).json(revisedUser);
 });
 // POST	/api/users	Creates a user using the information sent inside the request body.
 app.post("/api/users", async (req, res) => {
@@ -76,7 +77,7 @@ app.post("/api/users", async (req, res) => {
   res.status(201).json(newUser);
 });
 //DELETE	/api/users/:id	Removes the user with the specified id and returns the deleted user.
-app.delete("/api/users", (req, res) => {
+app.delete("/api/users/:id", async (req, res) => {
   const { id } = req.params;
   const user = await User.findById(id);
   if (!user) {
@@ -84,7 +85,7 @@ app.delete("/api/users", (req, res) => {
       message: "The user with the specified ID does not exist",
     });
   }
-  const deletedUser = User.remove(id);
+  const deletedUser = await User.remove(id);
   if (!deletedUser) {
     return res.status(500).json({
       message: "The user could not be removed",
